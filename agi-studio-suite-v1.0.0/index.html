@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGI Studio Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .tab-btn {
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background-color: #4f46e5;
+            color: white;
+            border-bottom-color: transparent;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Styles for the node graph */
+        .node {
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            padding: 12px;
+            position: absolute;
+            cursor: grab;
+            min-width: 180px;
+        }
+        .node-title {
+            font-weight: 600;
+            color: #d1d5db;
+            margin-bottom: 8px;
+        }
+        .node-port {
+            width: 12px;
+            height: 12px;
+            background-color: #6b7280;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .node-port.in { left: -6px; }
+        .node-port.out { right: -6px; }
+        .connector {
+            stroke: #6b7280;
+            stroke-width: 2;
+            fill: none;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react-dnd": "https://esm.sh/react-dnd@^16.0.1",
+    "react-dnd-html5-backend": "https://esm.sh/react-dnd-html5-backend@^16.0.1",
+    "@google/genai": "https://esm.sh/@google/genai@^1.9.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-gray-800/80 backdrop-blur-sm border-b border-gray-700 p-4 flex justify-between items-center shadow-lg">
+            <h1 class="text-xl font-bold text-white">
+                <span class="text-indigo-400">AGI</span> Studio Suite
+            </h1>
+            <div class="flex items-center space-x-2">
+                <span id="connection-status-text" class="text-xs text-gray-400">OFFLINE MODE</span>
+                <div id="connection-status-indicator" class="w-3 h-3 bg-green-500 rounded-full"></div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Tab Navigation -->
+            <nav class="w-64 bg-gray-800 p-4 border-r border-gray-700">
+                <ul class="space-y-2">
+                    <li><button id="tab-cortex" class="tab-btn w-full text-left p-3 rounded-lg font-medium active">🧠 Comfy Cortex</button></li>
+                    <li><button id="tab-architect" class="tab-btn w-full text-left p-3 rounded-lg font-medium">🏗️ Transformer Architect</button></li>
+                    <li><button id="tab-olympics" class="tab-btn w-full text-left p-3 rounded-lg font-medium">🏆 AGI Olympics</button></li>
+                    <li><button id="tab-run" class="tab-btn w-full text-left p-3 rounded-lg font-medium">⚡ Load & Run</button></li>
+                </ul>
+                <div class="mt-auto pt-4 border-t border-gray-700 absolute bottom-4 w-56">
+                    <p class="text-xs text-gray-500">v1.0.0 - AGI-GODCORE</p>
+                </div>
+            </nav>
+
+            <!-- Tab Content Area -->
+            <main class="flex-1 p-6 overflow-y-auto bg-gray-900">
+                <!-- 1. Comfy Cortex -->
+                <div id="content-cortex" class="tab-content active">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-white">Comfy Cortex: AGI Brain Designer</h2>
+                        <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Export Brain (.json)</button>
+                    </div>
+                    <div class="relative h-[70vh] bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-700 overflow-hidden">
+                        <!-- Node Graph Canvas -->
+                        <svg id="connector-svg" class="absolute top-0 left-0 w-full h-full">
+                            <!-- Connectors will be drawn here by JS -->
+                        </svg>
+                        
+                        <!-- Node 1: Input -->
+                        <div id="node1" class="node" style="top: 20%; left: 10%;">
+                            <div class="node-title">Multimodal Input</div>
+                            <div class="text-sm text-gray-400">Accepts: Text, Image, Audio</div>
+                            <div class="node-port out"></div>
+                        </div>
+
+                        <!-- Node 2: Fractal Kernel -->
+                        <div id="node2" class="node" style="top: 15%; left: 40%;">
+                            <div class="node-title">FractalKernel</div>
+                            <div class="text-sm text-gray-400">Embedding Transformation</div>
+                            <div class="node-port in"></div>
+                            <div class="node-port out"></div>
+                        </div>
+                        
+                        <!-- Node 3: VICTorch Block -->
+                        <div id="node3" class="node" style="top: 45%; left: 40%;">
+                            <div class="node-title">VICTorchBlock</div>
+                            <div class="text-sm text-gray-400">Core Processing</div>
+                            <div class="node-port in"></div>
+                            <div class="node-port out"></div>
+                        </div>
+
+                        <!-- Node 4: Attention -->
+                        <div id="node4" class="node" style="top: 30%; left: 70%;">
+                            <div class="node-title">Self-Attention</div>
+                            <div class="text-sm text-gray-400">Contextual Analysis</div>
+                            <div class="node-port in"></div>
+                            <div class="node-port out"></div>
+                        </div>
+
+                        <!-- Node 5: Output -->
+                        <div id="node5" class="node" style="top: 50%; left: 90%;">
+                            <div class="node-title">Classification Output</div>
+                            <div class="text-sm text-gray-400">Produces final result</div>
+                            <div class="node-port in"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Transformer Architect -->
+                <div id="content-architect" class="tab-content">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-white">Transformer Architect</h2>
+                        <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Export Model (.py)</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gray-800 p-6 rounded-lg">
+                            <h3 class="text-lg font-semibold mb-4 text-indigo-400">Core Architecture</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="num_heads" class="block text-sm font-medium text-gray-300">Attention Heads</label>
+                                    <input type="range" id="num_heads" min="2" max="16" value="8" step="2" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                                    <span class="text-sm text-gray-400">Value: <span id="num_heads_val">8</span></span>
+                                </div>
+                                <div>
+                                    <label for="key_dim" class="block text-sm font-medium text-gray-300">Key Dimension</label>
+                                    <input type="range" id="key_dim" min="32" max="128" value="64" step="16" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                                    <span class="text-sm text-gray-400">Value: <span id="key_dim_val">64</span></span>
+                                </div>
+                                <div>
+                                    <label for="num_classes" class="block text-sm font-medium text-gray-300">Output Classes</label>
+                                    <input type="number" id="num_classes" value="10" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 p-6 rounded-lg">
+                            <h3 class="text-lg font-semibold mb-4 text-indigo-400">Custom Layers</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="fk_depth" class="block text-sm font-medium text-gray-300">FractalKernel Depth</label>
+                                    <input type="number" id="fk_depth" value="4" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
+                                </div>
+                                <div>
+                                    <label for="vic_dim" class="block text-sm font-medium text-gray-300">VICTorchBlock Dimension</label>
+                                    <input type="number" id="vic_dim" value="1024" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
+                                </div>
+                                <div>
+                                    <label for="vic_depth" class="block text-sm font-medium text-gray-300">VICTorchBlock Depth</label>
+                                    <input type="number" id="vic_depth" value="12" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. AGI Olympics -->
+                <div id="content-olympics" class="tab-content">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-white">AGI Olympics: Training Suite</h2>
+                        <div class="flex space-x-4">
+                            <button class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">▶ Start Training</button>
+                            <button class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">■ Stop Training</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-gray-800 p-6 rounded-lg">
+                            <h3 class="text-lg font-semibold mb-4">Training Performance</h3>
+                            <div class="h-80"><canvas id="trainingChart"></canvas></div>
+                        </div>
+                        <div class="bg-gray-800 p-6 rounded-lg">
+                            <h3 class="text-lg font-semibold mb-4">Live Logs</h3>
+                            <div class="h-80 bg-gray-900 rounded-md p-4 overflow-y-auto text-sm font-mono text-gray-400">
+                                <p>> Epoch 1/10, Step 100/500: loss: 1.2345, accuracy: 0.6789</p>
+                                <p>> Epoch 1/10, Step 200/500: loss: 1.1023, accuracy: 0.7123</p>
+                                <p class="text-green-400">> New best accuracy achieved: 0.7123</p>
+                                <p>> Epoch 1/10, Step 300/500: loss: 1.0567, accuracy: 0.7345</p>
+                                <p>> Epoch 1/10, Step 400/500: loss: 0.9876, accuracy: 0.7567</p>
+                                <p class="text-green-400">> New best accuracy achieved: 0.7567</p>
+                                <p>> Epoch 1/10, Step 500/500: loss: 0.9543, accuracy: 0.7689</p>
+                                <p class="text-yellow-400">> Epoch 1 complete. Starting validation...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Load & Run -->
+                <div id="content-run" class="tab-content">
+                     <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-white">Load & Run Inference</h2>
+                        <button id="run-inference-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">⚡ Run Inference</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gray-800 p-6 rounded-lg space-y-4">
+                            <h3 class="text-lg font-semibold">1. Load Model & Data</h3>
+                            <div>
+                                <label for="model_upload" class="block mb-2 text-sm font-medium text-gray-300">Load AGI Brain (.json)</label>
+                                <input class="block w-full text-sm text-gray-400 border border-gray-600 rounded-lg cursor-pointer bg-gray-700 focus:outline-none" id="model_upload" type="file">
+                            </div>
+                            <div>
+                                <label for="data_upload" class="block mb-2 text-sm font-medium text-gray-300">Load Multimodal Input</label>
+                                <input class="block w-full text-sm text-gray-400 border border-gray-600 rounded-lg cursor-pointer bg-gray-700 focus:outline-none" id="data_upload" type="file" accept="image/*">
+                                <div id="image-preview-container" class="mt-4 hidden">
+                                    <img id="image_preview" class="rounded-lg max-h-48 w-auto mx-auto" src="" alt="Image preview"/>
+                                </div>
+                            </div>
+                             <div>
+                                <label for="text_input" class="block mb-2 text-sm font-medium text-gray-300">Or Enter Text Prompt</label>
+                                <textarea id="text_input" rows="4" class="block p-2.5 w-full text-sm text-gray-200 bg-gray-700 rounded-lg border border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Describe the image or ask a question..."></textarea>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 p-6 rounded-lg">
+                            <h3 class="text-lg font-semibold mb-4">2. Inference Output</h3>
+                            <div id="inference-output-container" class="h-full bg-gray-900 rounded-md p-4 text-sm text-gray-300 min-h-[300px]">
+                                <div id="output-content-placeholder">
+                                    <p class="font-semibold text-indigo-400">Classification Result:</p>
+                                    <p class="text-lg font-mono mt-2 p-3 bg-gray-700 rounded break-words">`scene.outdoors.forest`</p>
+                                    <p class="mt-4 font-semibold text-indigo-400">Confidence Score:</p>
+                                    <p class="text-lg font-mono mt-2 p-3 bg-gray-700 rounded break-words">`0.9231`</p>
+                                    <p class="mt-4 font-semibold text-indigo-400">Generated Text:</p>
+                                    <p class="mt-2 p-3 bg-gray-700 rounded h-24 overflow-y-auto break-words">The model identifies a dense forest scene, likely during the daytime under overcast skies. The primary subject appears to be a narrow hiking trail surrounded by tall pine trees.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { GoogleGenAI, Type } from "@google/genai";
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const contents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Deactivate all
+                    tabs.forEach(t => t.classList.remove('active'));
+                    contents.forEach(c => c.classList.remove('active'));
+
+                    // Activate clicked
+                    tab.classList.add('active');
+                    const contentId = 'content-' + tab.id.split('-')[1];
+                    document.getElementById(contentId).classList.add('active');
+                    
+                    // Special handling for chart and SVG on activation
+                    if (contentId === 'content-olympics') {
+                        renderTrainingChart();
+                    }
+                    if (contentId === 'content-cortex') {
+                        drawConnectors();
+                    }
+                });
+            });
+
+            // --- Transformer Architect Sliders ---
+            const sliders = [
+                { id: 'num_heads', valId: 'num_heads_val' },
+                { id: 'key_dim', valId: 'key_dim_val' },
+            ];
+            sliders.forEach(s => {
+                const slider = document.getElementById(s.id);
+                if (!slider) return;
+                const valueDisplay = document.getElementById(s.valId);
+                slider.addEventListener('input', () => {
+                    valueDisplay.textContent = slider.value;
+                });
+            });
+
+            // --- Comfy Cortex Node Connectors ---
+            function drawConnectors() {
+                const svg = document.getElementById('connector-svg');
+                if (!svg) return;
+                svg.innerHTML = ''; // Clear previous connectors
+
+                const connections = [
+                    { from: 'node1', to: 'node2' },
+                    { from: 'node1', to: 'node3' },
+                    { from: 'node2', to: 'node4' },
+                    { from: 'node3', to: 'node4' },
+                    { from: 'node4', to: 'node5' }
+                ];
+
+                connections.forEach(conn => {
+                    const fromNode = document.getElementById(conn.from);
+                    const toNode = document.getElementById(conn.to);
+                    
+                    if (!fromNode || !toNode) return;
+
+                    const fromRect = fromNode.getBoundingClientRect();
+                    const toRect = toNode.getBoundingClientRect();
+                    const svgRect = svg.getBoundingClientRect();
+
+                    const startX = fromRect.right - svgRect.left;
+                    const startY = fromRect.top + fromRect.height / 2 - svgRect.top;
+                    const endX = toRect.left - svgRect.left;
+                    const endY = toRect.top + toRect.height / 2 - svgRect.top;
+                    
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', `M ${startX} ${startY} C ${startX + 50} ${startY}, ${endX - 50} ${endY}, ${endX} ${endY}`);
+                    path.setAttribute('class', 'connector');
+                    svg.appendChild(path);
+                });
+            }
+            
+            window.addEventListener('resize', drawConnectors);
+
+            // --- AGI Olympics Chart ---
+            let trainingChartInstance = null;
+            function renderTrainingChart() {
+                const ctx = document.getElementById('trainingChart')?.getContext('2d');
+                if (!ctx) return;
+                if(trainingChartInstance) {
+                    trainingChartInstance.destroy();
+                }
+                trainingChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Epoch 1', 'Epoch 2', 'Epoch 3', 'Epoch 4', 'Epoch 5', 'Epoch 6'],
+                        datasets: [{
+                            label: 'Validation Accuracy',
+                            data: [0.76, 0.81, 0.85, 0.84, 0.88, 0.91],
+                            borderColor: 'rgba(79, 70, 229, 1)',
+                            backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                            fill: true,
+                            tension: 0.4
+                        }, {
+                            label: 'Training Loss',
+                            data: [0.95, 0.75, 0.60, 0.55, 0.45, 0.38],
+                            borderColor: 'rgba(217, 70, 239, 1)',
+                            backgroundColor: 'rgba(217, 70, 239, 0.2)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#9ca3af' },
+                                grid: { color: '#4b5563' }
+                            },
+                            x: {
+                                ticks: { color: '#9ca3af' },
+                                grid: { color: '#4b5563' }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#d1d5db'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Initial draws for active tab
+            if (document.querySelector('#content-cortex.active')) {
+                drawConnectors();
+            }
+            if (document.querySelector('#content-olympics.active')) {
+                renderTrainingChart();
+            }
+
+            // --- Load & Run Inference ---
+            const runBtn = document.getElementById('run-inference-btn');
+            const textInput = document.getElementById('text_input');
+            const dataUpload = document.getElementById('data_upload');
+            const imagePreviewContainer = document.getElementById('image-preview-container');
+            const imagePreview = document.getElementById('image_preview');
+            const outputContainer = document.getElementById('inference-output-container');
+            const placeholderOutput = document.getElementById('output-content-placeholder').innerHTML;
+            const connectionStatusText = document.getElementById('connection-status-text');
+            const connectionStatusIndicator = document.getElementById('connection-status-indicator');
+
+            let selectedImageBase64 = null;
+            let selectedImageMimeType = null;
+
+            if (process.env.API_KEY) {
+                connectionStatusText.textContent = 'ONLINE';
+                connectionStatusIndicator.classList.add('animate-pulse');
+            }
+            
+            dataUpload.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        imagePreview.src = e.target.result;
+                        imagePreviewContainer.classList.remove('hidden');
+                        const parts = e.target.result.split(',');
+                        selectedImageMimeType = parts[0].match(/:(.*?);/)[1];
+                        selectedImageBase64 = parts[1];
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    imagePreviewContainer.classList.add('hidden');
+                    imagePreview.src = '';
+                    selectedImageBase64 = null;
+                    selectedImageMimeType = null;
+                }
+            });
+
+            runBtn.addEventListener('click', async () => {
+                const userPrompt = textInput.value.trim();
+                const parts = [];
+
+                if (selectedImageBase64 && selectedImageMimeType) {
+                    parts.push({ inlineData: { mimeType: selectedImageMimeType, data: selectedImageBase64 } });
+                }
+
+                if (userPrompt) {
+                    parts.push({ text: userPrompt });
+                } else if (parts.length > 0) { // Image exists, but no prompt
+                    parts.push({ text: "Describe this image in detail. Also provide a concise classification label and a confidence score for your classification." });
+                }
+
+                if (parts.length === 0) {
+                    outputContainer.innerHTML = `<p class="text-yellow-400 font-medium">Please enter a text prompt or upload an image.</p>`;
+                    return;
+                }
+
+                runBtn.disabled = true;
+                runBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Running...`;
+                outputContainer.innerHTML = `<p class="text-gray-400">Querying the AGI core... please wait.</p>`;
+
+                try {
+                    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                    const schema = {
+                        type: Type.OBJECT,
+                        properties: {
+                            classificationResult: { type: Type.STRING, description: "A concise classification label for the image/prompt content, e.g. 'scene.outdoors.forest'." },
+                            confidenceScore: { type: Type.NUMBER, description: "A confidence score between 0 and 1 for the classification." },
+                            generatedText: { type: Type.STRING, description: "A detailed textual description or answer based on the prompt and/or image." }
+                        },
+                        required: ["classificationResult", "confidenceScore", "generatedText"]
+                    };
+                    
+                    const response = await ai.models.generateContent({
+                        model: 'gemini-2.5-flash',
+                        contents: { parts: parts },
+                        config: {
+                            responseMimeType: "application/json",
+                            responseSchema: schema,
+                        }
+                    });
+
+                    const resultJson = JSON.parse(response.text);
+
+                    outputContainer.innerHTML = `
+                        <div>
+                            <p class="font-semibold text-indigo-400">Classification Result:</p>
+                            <p class="text-lg font-mono mt-2 p-3 bg-gray-700 rounded break-words whitespace-pre-wrap">\`${resultJson.classificationResult}\`</p>
+                            <p class="mt-4 font-semibold text-indigo-400">Confidence Score:</p>
+                            <p class="text-lg font-mono mt-2 p-3 bg-gray-700 rounded break-words whitespace-pre-wrap">\`${typeof resultJson.confidenceScore === 'number' ? resultJson.confidenceScore.toFixed(4) : resultJson.confidenceScore}\`</p>
+                            <p class="mt-4 font-semibold text-indigo-400">Generated Text:</p>
+                            <p class="mt-2 p-3 bg-gray-700 rounded max-h-48 overflow-y-auto break-words whitespace-pre-wrap">${resultJson.generatedText}</p>
+                        </div>
+                    `;
+                } catch (error) {
+                    console.error(error);
+                    outputContainer.innerHTML = `<div class="text-red-400"><p class="font-bold">An error occurred:</p><p class="mt-2 font-mono text-sm">${error.message}</p></div>`;
+                } finally {
+                    runBtn.disabled = false;
+                    runBtn.innerHTML = '⚡ Run Inference';
+                }
+            });
+        });
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

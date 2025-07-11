@@ -1,0 +1,6 @@
+{
+  "name": "AGI Studio Suite",
+  "description": "A comprehensive, multi-tool suite for designing, training, and running next-generation AGI models, featuring a visual node editor, hyperparameter tuning, and an inference dashboard.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
